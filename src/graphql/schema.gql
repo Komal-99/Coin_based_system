@@ -1,0 +1,49 @@
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  password: String!
+  createdAt: String!
+  roles: [Role!]!
+}
+
+type Role {
+  id: ID!
+  name: String!
+  description: String!
+  createdAt: String!
+  permissions: [Permission!]!
+  users: [User!]!
+}
+
+type Project {
+  id: ID!
+  name: String!
+  description: String!
+  createdAt: String!
+  secrets: [Secret!]!
+  permissions: [Permission!]!
+}
+
+type Secret {
+  id: ID!
+  name: String!
+  value: String!
+  createdAt: String!
+  project: Project!
+}
+
+type Permission {
+  id: ID!
+  createdAt: String!
+  roles: Role!
+  project: Project!
+  accessLevel: AccessLevel!
+}
+
+enum AccessLevel {
+  READ
+  WRITE
+  DELETE
+}
+
