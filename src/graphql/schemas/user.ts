@@ -4,6 +4,7 @@ export const userType = gql`
   extend type Query {
     users: [User!]!
     user(id: String!): User! 
+    userByEmail(email: String!): User
   }
 
   extend type Mutation {
@@ -11,7 +12,7 @@ export const userType = gql`
     createUser(
       username: String
       email: String!
-      password: String!
+      password: String
     ): User!
     updateUser(
       id: String!

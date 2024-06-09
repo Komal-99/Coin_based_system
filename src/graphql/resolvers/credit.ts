@@ -5,7 +5,7 @@ import { Response } from "express";
 const prisma = new PrismaClient();
 
 interface UpdateCreditArgs{
-  userId: string;
+  email: string;
   type: CreditType;
   credits: number;
 }
@@ -16,9 +16,15 @@ interface DeleteCreditArgs {
 
 export const creditResolvers = {
     Query:{
-        credit: async (_: any, { userId, res }: { userId: string, res: Response }): Promise<Credit[]> => {
+        credit: async (_: any, { email, res }: { email: string, res: Response }): Promise<Credit[]> => {
             try {
-              return await prisma.credit.findMany({ where: { userId } });
+              const user = await prisma.user.findUnique({ where: { email } });
+
+              if (!user) {
+                throw new Error("User not found");
+              }
+
+              return await prisma.credit.findMany({ where: { userId:  user.id } });
             } catch (error) {
               return handlePrismaError(error, res);
             }
@@ -34,14 +40,20 @@ export const creditResolvers = {
 
     },
     Mutation:{
+
+
         updateCredit: async (
             _: any,
-            { credits, type, userId }: UpdateCreditArgs,
+            { credits, type, email }: UpdateCreditArgs,
             { res }: { res: Response }
           ): Promise<Credit> => {
             try {
+              const user = await prisma.user.findUnique({ where: { email } });
+              if (!user) {
+                throw new Error("User not found");
+              }
               return await prisma.credit.create({
-                data: { credits, type, userId },
+                data: { credits, type, userId: user.id },
               });
             } catch (error) {
               return handlePrismaError(error, res);

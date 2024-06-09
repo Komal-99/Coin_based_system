@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 interface CreateUserArgs {
   username?: string;
   email: string;
-  password: string;
+  password?: string;
 }
 
 interface UpdateUserArgs extends CreateUserArgs {
@@ -20,17 +20,57 @@ interface DeleteUserArgs {
 
 export const userResolvers = {
   Query: {
-    users: async (_: any, __: any, { res }: { res: Response }): Promise<User[]> => {
+    users: async (
+      _: any,
+      __: any,
+      { res }: { res: Response }
+    ): Promise<User[]> => {
       try {
-        return await prisma.user.findMany({ include: {Wallet: true}});
+        return await prisma.user.findMany({ include: { Wallet: true } });
       } catch (error) {
         return handlePrismaError(error, res);
       }
     },
-    user: async (_: any, { id }: { id: string }, { res }: { res: Response }): Promise<User | null> => {
+    user: async (
+      _: any,
+      { id }: { id: string },
+      { res }: { res: Response }
+    ): Promise<User | null> => {
       try {
-        return await prisma.user.findUnique({ where: { id },include: {Wallet: true}});
+        return await prisma.user.findUnique({
+          where: { id },
+          include: { Wallet: true },
+        });
       } catch (error) {
+        return handlePrismaError(error, res);
+      }
+    },
+    userByEmail: async (
+      _: any,
+      { email }: { email: string },
+      { res }: { res: Response }
+    ): Promise<User | null> => {
+      try {
+        console.log(email);
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        console.log(user);
+        if (!user) {
+
+          console.log("User not found, creating new user...");
+          const newUser = userResolvers.Mutation.createUser(
+            _,
+            { email },
+            { res }
+          );
+          return newUser;
+        }
+
+        return user;
+      } catch (error) {
+        console.log(error);
         return handlePrismaError(error, res);
       }
     },
@@ -59,11 +99,11 @@ export const userResolvers = {
           data: { username, email, password },
         });
         await prisma.wallet.create({
-          data: {  userId: user.id },
+          data: { userId: user.id },
         });
         return user;
       } catch (error) {
-        console.log(error)
+        console.log(error);
         return handlePrismaError(error, res);
         // return handlePrismaError(error, res);
       }

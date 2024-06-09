@@ -2,13 +2,13 @@ import { gql } from "apollo-server-express";
 
 export const paymentType = gql`
   extend type Query {
-    payments(userId:String!): [Payment!]!
+    payments(email:String!): [Payment!]!
     payment(id: String!): Payment
   }
 
   extend type Mutation {
     createPayment(
-    userId: String!
+    email: String!
     amount: Int!
     payment_method: String!
     Stripe_charge_id: String!

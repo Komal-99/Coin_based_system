@@ -5,7 +5,7 @@ import { Response } from "express";
 const prisma = new PrismaClient();
 
 interface CreatePaymenttArgs {
-  userId: string;
+  email: string;
   amount: number;
   type: TransactionType;
   payment_method: string;
@@ -15,9 +15,13 @@ interface CreatePaymenttArgs {
 
 export const paymentResolvers = {
   Query: {
-    payments: async (_: any, { userId, res }: { userId: string, res: Response }): Promise<Payment[] | null> => {
+    payments: async (_: any, { email, res }: { email: string, res: Response }): Promise<Payment[] | null> => {
       try {
-        return await prisma.payment.findMany({ where: { userId } });
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+          throw new Error("User not found");
+        }
+        return await prisma.payment.findMany({ where: { userId: user.id } });
       } catch (error) {
         return handlePrismaError(error, res);
       }
@@ -34,15 +38,19 @@ export const paymentResolvers = {
     // create Transaction and then create a payment using transactionId
     createPayment: async (
       _: any,
-      { userId, amount, payment_method, Stripe_charge_id }: CreatePaymenttArgs,
+      { email, amount, payment_method, Stripe_charge_id }: CreatePaymenttArgs,
       { res }: { res: Response }
     ): Promise<Payment> => {
       try {
 
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+          throw new Error("User not found");
+        }
         const transaction = await prisma.transaction.create({
           data: {
             amount,
-            userId,
+            userId: user.id,
             type: TransactionType.PURCHASE,
           },
         });
@@ -52,7 +60,7 @@ export const paymentResolvers = {
             amount,
             payment_method,
             transactionId: transaction.id,
-            userId,
+            userId: user.id,
             payment_status: PaymentStatus.SUCCESS,
             Stripe_charge_id: Stripe_charge_id,
 
@@ -64,10 +72,10 @@ export const paymentResolvers = {
           data: {
             credits: parseInt(pay.amount.toString()),
             type: CreditType.PURCHASED,
-            userId
+            userId: user.id,
           }
         });
-        await prisma.wallet.update({ where: { userId }, data: { balance: { increment: credit.credits } } });
+        await prisma.wallet.update({ where: { userId: user.id }, data: { balance: { increment: credit.credits } } });
         return pay;
       }
       catch (error) {
